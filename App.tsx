@@ -2,11 +2,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { Navigation, X, Loader2, Target, Send, Database, Trash2, Image as ImageIcon, Camera } from 'lucide-react';
-import { Report, GeoLocation, MapMode } from './types';
+import { Navigation, X, Loader2, MapPin, Trash2, Check, Camera, Image as ImageIcon, AlertTriangle } from 'lucide-react';
+import { Report, GeoLocation, MapMode, RISK_TYPES } from './types';
 import { uploadReportToServer, uploadImageToCloudinary } from './services/serverService';
 
-// Fix for default marker icons in Leaflet
+// Fix for default marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -14,81 +14,12 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const pointIcon = L.divIcon({
-  className: 'custom-div-icon',
-  html: `
-    <div style="position: relative;">
-      <div class="marker-pulse" style="color: #ef4444"></div>
-      <div class="marker-pin" style="background-color: #ef4444"></div>
-    </div>
-  `,
-  iconSize: [30, 42],
-  iconAnchor: [15, 42]
-});
-
-const selectionIcon = L.divIcon({
-  className: 'selection-icon',
-  html: `<div class="w-8 h-8 bg-blue-600 rounded-full border-4 border-white shadow-xl flex items-center justify-center animate-bounce">
-          <div class="w-2 h-2 bg-white rounded-full"></div>
-         </div>`,
+const dangerMarkerIcon = L.divIcon({
+  className: 'custom-marker',
+  html: `<div class="w-8 h-8 bg-red-500 rounded-full border-2 border-white shadow-xl flex items-center justify-center text-white"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>`,
   iconSize: [32, 32],
   iconAnchor: [16, 16]
 });
-
-// وظيفة لضغط الصورة قبل الرفع
-const compressImage = async (file: File): Promise<File> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        
-        // تقليل الأبعاد إذا كانت كبيرة جداً للحفاظ على الحجم
-        const MAX_WIDTH = 1280;
-        const MAX_HEIGHT = 1280;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              const compressedFile = new File([blob], file.name, {
-                type: 'image/jpeg',
-                lastModified: Date.now(),
-              });
-              resolve(compressedFile);
-            } else {
-              reject(new Error("فشل ضغط الصورة"));
-            }
-          },
-          'image/jpeg',
-          0.7 // الجودة (0.7 كافية جداً لتبقى أقل من 1 ميجا)
-        );
-      };
-    };
-    reader.onerror = (err) => reject(err);
-  });
-};
 
 const MapController: React.FC<{ 
   mode: MapMode; 
@@ -99,20 +30,9 @@ const MapController: React.FC<{
 
   useEffect(() => {
     if (flyToLocation) {
-      map.flyTo([flyToLocation.lat, flyToLocation.lng], 17, {
-        animate: true,
-        duration: 1.5
-      });
+      map.flyTo([flyToLocation.lat, flyToLocation.lng], 16, { animate: true });
     }
   }, [flyToLocation, map]);
-
-  useEffect(() => {
-    if (mode === 'PICK_LOCATION') {
-      map.getContainer().style.cursor = 'crosshair';
-    } else {
-      map.getContainer().style.cursor = '';
-    }
-  }, [mode, map]);
 
   useMapEvents({
     click(e) {
@@ -133,15 +53,16 @@ const App: React.FC = () => {
   const [pickedLocation, setPickedLocation] = useState<GeoLocation | null>(null);
   const [userLocation, setUserLocation] = useState<GeoLocation | null>(null);
   const [flyToTarget, setFlyToTarget] = useState<GeoLocation | null>(null);
-  const [statusMsg, setStatusMsg] = useState<string | null>(null);
-  const [pointName, setPointName] = useState("");
   
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  // Form States
+  const [pointName, setPointName] = useState("");
+  const [riskType, setRiskType] = useState(RISK_TYPES[0]);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => {
-    const saved = localStorage.getItem('field_reports_with_images');
+    const saved = localStorage.getItem('danger_points_v2');
     if (saved) {
       setReports(JSON.parse(saved));
     }
@@ -150,7 +71,7 @@ const App: React.FC = () => {
 
   const saveReports = (newReports: Report[]) => {
     setReports(newReports);
-    localStorage.setItem('field_reports_with_images', JSON.stringify(newReports));
+    localStorage.setItem('danger_points_v2', JSON.stringify(newReports));
   };
 
   const handleGetCurrentLocation = (setAsPicked = true) => {
@@ -164,7 +85,7 @@ const App: React.FC = () => {
           setFlyToTarget(loc);
         }
       },
-      (err) => console.debug("GPS Fetch error", err),
+      (err) => console.debug("GPS Error", err),
       { enableHighAccuracy: true }
     );
   };
@@ -172,7 +93,7 @@ const App: React.FC = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
+      setSelectedImage(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -182,57 +103,43 @@ const App: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!pickedLocation) {
-      alert("يرجى تحديد موقع أولاً.");
-      return;
-    }
-    if (!imageFile) {
-      alert("يرجى اختيار صورة أولاً.");
+    if (!pickedLocation || !pointName.trim() || !selectedImage) {
+      alert("يرجى إدخال كافة البيانات (الاسم، الموقع، والصورة)");
       return;
     }
 
     setLoading(true);
     try {
-      // 1. ضغط الصورة قبل الرفع
-      setStatusMsg("جاري معالجة وضغط الصورة...");
-      const compressedFile = await compressImage(imageFile);
-      
-      console.log(`Original size: ${(imageFile.size / 1024 / 1024).toFixed(2)}MB`);
-      console.log(`Compressed size: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+      // 1. Upload to Cloudinary
+      const imageUrl = await uploadImageToCloudinary(selectedImage);
 
-      // 2. الرفع إلى Cloudinary
-      setStatusMsg("جاري رفع الصورة إلى Cloudinary...");
-      const imageUrl = await uploadImageToCloudinary(compressedFile);
-
-      // 3. إرسال البيانات إلى Google Sheets
-      setStatusMsg("جاري حفظ البيانات في السجل...");
-      const finalName = pointName || `نقطة ${pickedLocation.lat.toFixed(4)}`;
-      
+      // 2. Upload to Google Sheets
       await uploadReportToServer({
-        nom_douar: finalName,
+        nom_douar: pointName,
         image_url: imageUrl,
         latitude: pickedLocation.lat,
-        longitude: pickedLocation.lng
+        longitude: pickedLocation.lng,
+        type_risk: riskType
       });
 
+      // 3. Save locally
       const newReport: Report = {
         id: Date.now().toString(),
         location: pickedLocation,
         timestamp: Date.now(),
-        nom_douar: finalName,
-        imageUrl: imageUrl
+        nom_douar: pointName,
+        imageUrl: imageUrl,
+        type_risk: riskType
       };
 
       saveReports([newReport, ...reports]);
       setLoading(false);
-      setStatusMsg(null);
-      alert("تم الحفظ والرفع بنجاح!");
       resetForm();
+      alert("تم إرسال التقرير بنجاح!");
     } catch (error: any) {
       console.error(error);
-      alert("حدث خطأ: " + error.message);
+      alert("حدث خطأ أثناء الإرسال، يرجى المحاولة لاحقاً");
       setLoading(false);
-      setStatusMsg(null);
     }
   };
 
@@ -241,51 +148,37 @@ const App: React.FC = () => {
     setPickedLocation(null);
     setMapMode('VIEW');
     setPointName("");
-    setImageFile(null);
+    setRiskType(RISK_TYPES[0]);
+    setSelectedImage(null);
     setImagePreview(null);
   };
 
-  const clearHistory = () => {
-    if (confirm("هل تريد مسح النقاط المسجلة في هذا الجهاز فقط؟ (لن تحذف من السيرفر)")) {
-      saveReports([]);
-    }
-  };
-
   return (
-    <div className="flex flex-col h-screen w-screen bg-slate-900 text-white overflow-hidden relative font-sans">
-      {/* Header */}
-      <header className="z-20 bg-white shadow-md p-4 flex justify-between items-center text-gray-800 border-b-4 border-emerald-600">
+    <div className="flex flex-col h-screen w-screen bg-gray-100 text-gray-900 overflow-hidden relative font-sans">
+      {/* Dynamic Header */}
+      <header className="z-20 bg-white/90 backdrop-blur-md shadow-sm p-4 flex justify-between items-center border-b">
         <div className="flex items-center gap-3">
-          <div className="bg-emerald-600 p-2.5 rounded-xl text-white shadow-lg shadow-emerald-200">
-            <Camera size={24} />
+          <div className="bg-red-500 p-2 rounded-lg text-white">
+            <AlertTriangle size={20} />
           </div>
           <div>
-            <h1 className="text-xl font-black tracking-tight">رصد المواقع بالصور</h1>
-            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Google Hybrid + Auto Compression</p>
+            <h1 className="text-md font-bold text-gray-800 leading-tight">رصد المخاطر الميدانية</h1>
+            <p className="text-[10px] text-gray-400 font-medium">نظام تصدير الإحداثيات المباشر</p>
           </div>
         </div>
         <button 
-          onClick={clearHistory}
-          className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2 rounded-xl font-bold text-xs hover:bg-red-100 transition"
+          onClick={() => { if(confirm("هل تريد مسح السجل المحلي؟")) saveReports([]); }}
+          className="p-2 text-gray-300 hover:text-red-500 transition-colors"
         >
-          <Trash2 size={16} />
-          مسح النقاط
+          <Trash2 size={18} />
         </button>
       </header>
 
-      {/* Map View */}
+      {/* Main Content Area */}
       <main className="flex-1 relative">
-        <MapContainer 
-          center={[31.7917, -7.0926]} 
-          zoom={6} 
-          className="h-full w-full"
-        >
-          {/* طبقة جوجل هايبرد - قمر صناعي مع تسميات */}
-          <TileLayer
-            attribution="&copy; Google Maps"
-            url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
-          />
-
+        <MapContainer center={[31.7917, -7.0926]} zoom={6} className="h-full w-full">
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          
           <MapController 
             mode={mapMode} 
             flyToLocation={flyToTarget}
@@ -297,48 +190,24 @@ const App: React.FC = () => {
             }} 
           />
 
-          {pickedLocation && mapMode === 'VIEW' && isFormOpen && (
-            <Marker position={[pickedLocation.lat, pickedLocation.lng]} icon={selectionIcon} />
-          )}
-
           {userLocation && (
-            <Circle 
-              center={[userLocation.lat, userLocation.lng]} 
-              radius={20} 
-              pathOptions={{ fillColor: '#3b82f6', color: 'white', weight: 3, fillOpacity: 0.4 }} 
-            />
+            <Circle center={[userLocation.lat, userLocation.lng]} radius={40} pathOptions={{ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.2 }} />
           )}
 
-          {reports.map((report) => (
-            <Marker 
-              key={report.id} 
-              position={[report.location.lat, report.location.lng]}
-              icon={pointIcon}
-            >
-              <Popup className="custom-popup">
-                <div className="p-0 text-gray-800 w-full bg-white rounded-lg overflow-hidden">
-                  {report.imageUrl && (
-                    <div className="relative group cursor-pointer" onClick={() => window.open(report.imageUrl, '_blank')}>
-                      <img 
-                        src={report.imageUrl} 
-                        alt={report.nom_douar} 
-                        className="w-full h-48 object-cover hover:scale-105 transition-transform duration-500" 
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <span className="text-white text-xs font-bold bg-black/50 px-3 py-1 rounded-full">تكبير</span>
-                      </div>
-                    </div>
+          {reports.map((r) => (
+            <Marker key={r.id} position={[r.location.lat, r.location.lng]} icon={dangerMarkerIcon}>
+              <Popup>
+                <div className="overflow-hidden rounded-xl">
+                  {r.imageUrl && (
+                    <img src={r.imageUrl} alt={r.nom_douar} className="w-full h-32 object-cover" />
                   )}
-                  <div className="p-4 bg-white">
-                    <div className="font-black text-lg text-emerald-700 mb-1 leading-tight">{report.nom_douar}</div>
-                    <div className="text-[10px] font-mono text-gray-400 mb-3 bg-gray-50 p-2 rounded border border-gray-100">
-                      {report.location.lat.toFixed(6)}, {report.location.lng.toFixed(6)}
+                  <div className="p-3">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="text-[10px] font-bold uppercase bg-red-100 text-red-600 px-2 py-0.5 rounded-full">{r.type_risk}</span>
+                      <span className="text-[10px] text-gray-400">{new Date(r.timestamp).toLocaleDateString('ar-MA')}</span>
                     </div>
-                    <div className="flex justify-between items-center text-[9px] text-gray-400 font-bold uppercase">
-                      <span>{new Date(report.timestamp).toLocaleDateString('ar-EG')}</span>
-                      <span>{new Date(report.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
-                    </div>
+                    <h3 className="font-bold text-gray-800 text-sm mb-1">{r.nom_douar}</h3>
+                    <p className="text-[10px] font-mono text-gray-400">{r.location.lat.toFixed(5)}, {r.location.lng.toFixed(5)}</p>
                   </div>
                 </div>
               </Popup>
@@ -346,171 +215,163 @@ const App: React.FC = () => {
           ))}
         </MapContainer>
 
-        {/* GPS Control */}
-        <div className="absolute top-4 left-4 z-[1000]">
-           <button 
+        {/* Floating Controls */}
+        <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-2">
+          <button 
             onClick={() => handleGetCurrentLocation(true)}
-            className="bg-white text-blue-600 p-4 rounded-2xl shadow-2xl hover:bg-gray-50 transition border-2 border-white flex items-center justify-center active:scale-90"
-            title="تحديد موقعي الآن"
+            className="bg-white p-3 rounded-2xl shadow-xl border border-gray-100 hover:bg-gray-50 active:scale-90 transition-all text-blue-600"
+            title="تحديد موقعي"
           >
-            <Navigation size={24} />
+            <Navigation size={22} />
           </button>
         </div>
 
-        {/* Action Button */}
+        {/* Floating Action Button */}
         {!isFormOpen && mapMode === 'VIEW' && (
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-xs px-4">
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[1000]">
             <button 
               onClick={() => setIsFormOpen(true)}
-              className="w-full bg-emerald-600 text-white py-5 rounded-[25px] shadow-2xl hover:bg-emerald-700 transition-all flex items-center justify-center gap-4 font-black text-xl border-4 border-white active:scale-95 shadow-emerald-500/30"
+              className="bg-red-600 text-white px-8 py-4 rounded-full shadow-2xl font-bold flex items-center gap-3 hover:bg-red-700 active:scale-95 transition-all animate-bounce"
             >
-              <Camera size={28} />
-              إرسال صورة ونقطة
+              <Camera size={20} />
+              رصد خطر جديد
             </button>
           </div>
         )}
 
-        {/* Sidebar Panel */}
+        {/* Selection Indicator */}
+        {mapMode === 'PICK_LOCATION' && (
+          <div className="absolute inset-0 z-[1001] bg-black/20 flex items-center justify-center pointer-events-none">
+            <div className="bg-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-pulse">
+              <MapPin size={20} className="text-red-500" />
+              <span className="font-bold text-sm">انقر على الخريطة لتحديد الموقع</span>
+            </div>
+          </div>
+        )}
+
+        {/* Entry Sidebar/Form */}
         {isFormOpen && (
-          <div className="absolute inset-y-0 right-0 w-full md:w-[420px] bg-white z-[1100] shadow-2xl flex flex-col border-l border-gray-100 animate-in slide-in-from-right duration-300">
-            <div className="p-6 border-b flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600">
-                  <Camera size={20} />
-                </div>
-                <h2 className="text-lg font-black text-gray-900">إضافة بيانات جديدة</h2>
+          <div className="absolute inset-x-0 bottom-0 md:inset-y-0 md:right-0 md:w-[400px] bg-white z-[1100] shadow-2xl flex flex-col border-t md:border-t-0 md:border-l animate-in slide-in-from-bottom md:slide-in-from-right duration-300">
+            <div className="p-6 border-b flex justify-between items-center bg-gray-50/50">
+              <div>
+                <h2 className="font-bold text-gray-800 text-lg">تفاصيل الرصد</h2>
+                <p className="text-xs text-gray-400">يرجى ملء كافة المعطيات المطلوبة</p>
               </div>
-              <button onClick={resetForm} className="p-2 hover:bg-gray-100 rounded-full transition text-gray-400">
-                <X size={24} />
+              <button onClick={resetForm} className="p-2 bg-white rounded-full shadow-sm text-gray-400 hover:text-gray-600">
+                <X size={20} />
               </button>
             </div>
 
-            <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-              {/* 1. Location Selection */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Location Picker Options */}
               <div className="space-y-3">
-                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">تحديد الموقع</label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">الموقع الجغرافي</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button 
                     onClick={() => handleGetCurrentLocation(true)}
-                    className={`flex flex-col items-center gap-3 p-4 rounded-3xl border-2 transition-all ${
-                      pickedLocation && userLocation && Math.abs(pickedLocation.lat - userLocation.lat) < 0.0001 
-                      ? 'border-blue-600 bg-blue-50 text-blue-700' 
-                      : 'border-gray-100 bg-gray-50 text-gray-400'
-                    }`}
+                    className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${pickedLocation && userLocation ? 'bg-blue-50 border-blue-500 text-blue-600' : 'bg-gray-50 border-gray-100 text-gray-400 hover:border-gray-200'}`}
                   >
-                    <Navigation size={24} />
+                    <Navigation size={20} />
                     <span className="text-[10px] font-bold">موقعي الحالي</span>
                   </button>
                   <button 
-                    onClick={() => {
-                      setMapMode('PICK_LOCATION');
-                      setIsFormOpen(false);
-                    }}
-                    className={`flex flex-col items-center gap-3 p-4 rounded-3xl border-2 transition-all ${
-                      pickedLocation && (!userLocation || Math.abs(pickedLocation.lat - userLocation.lat) >= 0.0001)
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-700' 
-                      : 'border-gray-100 bg-gray-50 text-gray-400'
-                    }`}
+                    onClick={() => { setMapMode('PICK_LOCATION'); setIsFormOpen(false); }}
+                    className="p-4 rounded-2xl border-2 border-gray-100 bg-gray-50 text-gray-400 flex flex-col items-center gap-2 hover:border-gray-200 transition-all"
                   >
-                    <Target size={24} />
-                    <span className="text-[10px] font-bold">تحديد على الخريطة</span>
+                    <MapPin size={20} />
+                    <span className="text-[10px] font-bold">اختيار يدوياً</span>
                   </button>
                 </div>
+                {pickedLocation && (
+                  <div className="bg-gray-900 text-gray-300 p-3 rounded-xl font-mono text-[10px] flex justify-between items-center">
+                    <span className="opacity-50">COORD:</span>
+                    <span>{pickedLocation.lat.toFixed(6)}, {pickedLocation.lng.toFixed(6)}</span>
+                  </div>
+                )}
               </div>
 
-              {/* 2. Image Selection */}
-              <div className="space-y-3">
-                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">الصورة (أقل من 1 ميجا تلقائياً)</label>
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`relative w-full aspect-video rounded-3xl border-2 border-dashed cursor-pointer overflow-hidden transition-all flex flex-col items-center justify-center gap-2 ${
-                    imagePreview ? 'border-emerald-600 bg-emerald-50' : 'border-gray-200 bg-gray-50 hover:border-emerald-300'
-                  }`}
-                >
-                  {imagePreview ? (
-                    <>
-                      <img src={imagePreview} className="absolute inset-0 w-full h-full object-cover" alt="Preview" />
-                      <div className="absolute inset-0 bg-black/10 hover:bg-black/20 flex items-center justify-center transition-colors">
-                         <span className="bg-white/90 text-gray-900 px-4 py-2 rounded-full font-black text-xs shadow-xl">تغيير الصورة</span>
+              {/* Input Fields */}
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">اسم الدوار / المكان</label>
+                  <input 
+                    type="text" 
+                    value={pointName}
+                    onChange={(e) => setPointName(e.target.value)}
+                    placeholder="مثال: دوار أيت علي"
+                    className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">نوع الخطر</label>
+                  <select 
+                    value={riskType}
+                    onChange={(e) => setRiskType(e.target.value)}
+                    className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:border-red-500 outline-none transition-all font-bold appearance-none"
+                  >
+                    {RISK_TYPES.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Image Upload Component */}
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">الصورة الميدانية</label>
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`relative w-full aspect-video rounded-3xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden ${imagePreview ? 'border-solid border-green-500' : 'border-gray-200 hover:bg-gray-50 hover:border-red-300'}`}
+                  >
+                    {imagePreview ? (
+                      <>
+                        <img src={imagePreview} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                          <ImageIcon className="text-white" size={32} />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center p-6">
+                        <Camera className="mx-auto text-gray-300 mb-2" size={32} />
+                        <p className="text-xs text-gray-400 font-bold">اضغط لالتقاط أو اختيار صورة</p>
                       </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="bg-white p-3 rounded-full shadow-sm text-emerald-600">
-                        <ImageIcon size={28} />
-                      </div>
-                      <span className="text-[11px] font-bold text-gray-400">التقط صورة أو اختر من المعرض</span>
-                    </>
-                  )}
+                    )}
+                  </div>
                   <input 
                     type="file" 
                     ref={fileInputRef} 
-                    className="hidden" 
+                    onChange={handleImageChange} 
                     accept="image/*" 
-                    onChange={handleImageChange}
                     capture="environment"
+                    className="hidden" 
                   />
                 </div>
               </div>
-
-              {/* 3. Name */}
-              <div className="space-y-3">
-                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">اسم النقطة / الدوار</label>
-                <input 
-                  type="text" 
-                  placeholder="أدخل اسم الموقع..." 
-                  value={pointName}
-                  onChange={(e) => setPointName(e.target.value)}
-                  className="w-full px-5 py-4 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-gray-800 font-bold transition-all bg-gray-50"
-                />
-              </div>
-
-              {/* Location Feedback */}
-              {pickedLocation && (
-                <div className="bg-emerald-900 text-white p-5 rounded-3xl space-y-2">
-                  <div className="text-[10px] text-emerald-300 font-black uppercase flex items-center justify-between">
-                    <span>الإحداثيات المختارة</span>
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
-                  </div>
-                  <div className="font-mono text-xs flex justify-between bg-black/20 p-3 rounded-xl">
-                    <span>{pickedLocation.lat.toFixed(6)}</span>
-                    <span className="opacity-30">|</span>
-                    <span>{pickedLocation.lng.toFixed(6)}</span>
-                  </div>
-                </div>
-              )}
             </div>
 
+            {/* Submission Area */}
             <div className="p-6 bg-gray-50 border-t">
               <button 
                 onClick={handleSubmit}
-                disabled={loading || !pickedLocation || !imageFile}
-                className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black hover:bg-emerald-700 disabled:bg-gray-200 disabled:cursor-not-allowed transition-all shadow-xl shadow-emerald-500/20 flex flex-col items-center justify-center relative active:scale-95"
+                disabled={loading || !pickedLocation || !pointName.trim() || !selectedImage}
+                className="w-full bg-red-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-3 disabled:bg-gray-200 disabled:text-gray-400 shadow-lg hover:bg-red-700 active:scale-95 transition-all shadow-red-500/20"
               >
-                <div className="flex items-center gap-3">
-                  {loading ? <Loader2 className="animate-spin" size={24} /> : <Send size={20} />}
-                  <span>{loading ? 'جاري الرفع...' : 'تأكيد وحفظ'}</span>
-                </div>
-                {statusMsg && <span className="text-[9px] font-bold opacity-70 mt-1">{statusMsg}</span>}
+                {loading ? (
+                  <>
+                    <Loader2 size={20} className="animate-spin" />
+                    جاري الرفع والمعالجة...
+                  </>
+                ) : (
+                  <>
+                    <Check size={20} />
+                    إرسال التقرير النهائي
+                  </>
+                )}
               </button>
             </div>
           </div>
         )}
       </main>
-
-      {/* Footer Status */}
-      <footer className="z-10 bg-white border-t p-2 px-6 flex justify-between items-center text-[9px] text-gray-400 font-bold uppercase tracking-widest">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-            <span>النقاط: {reports.length}</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 text-blue-500">
-          <Database size={10} />
-          Synced to Google Sheets
-        </div>
-      </footer>
     </div>
   );
 };
