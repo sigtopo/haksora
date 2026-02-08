@@ -1,0 +1,8 @@
+{
+  "name": "نظام تصدير إحداثيات المواقع",
+  "description": "تطبيق متخصص في رصد وتصدير الإحداثيات الجغرافية مباشرة إلى جداول بيانات جوجل (Google Sheets).",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera"
+  ]
+}
