@@ -1,11 +1,14 @@
 
-const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dyulqoqyd/image/upload";
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxnC5_RT7_88yeRyjrvomeBXHTIRbTa11xWwWXuUo_4aRLBoFauzcLfB_L08Uuel0lqEg/exec';
+const CLOUD_NAME = "dyulqoqyd";
+const UPLOAD_PRESET = "khatar";
+const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwycY8yXGfjwk-a9zHBG1zVt9Mj69W76JjSMPJ5bebJe3ivcRe2lPfY69Ea6lHc7h0KbQ/exec';
 
 export const uploadImageToCloudinary = async (imageFile: File): Promise<string> => {
   const formData = new FormData();
   formData.append("file", imageFile);
-  formData.append("upload_preset", "khatar");
+  formData.append("upload_preset", UPLOAD_PRESET);
+  formData.append("cloud_name", CLOUD_NAME);
   
   try {
     const response = await fetch(CLOUDINARY_URL, {
@@ -16,7 +19,7 @@ export const uploadImageToCloudinary = async (imageFile: File): Promise<string> 
     if (data.secure_url) {
       return data.secure_url;
     }
-    throw new Error("فشل الحصول على رابط الصورة");
+    throw new Error("فشل الحصول على رابط الصورة من Cloudinary");
   } catch (error) {
     console.error("Cloudinary upload error:", error);
     throw error;
@@ -24,14 +27,14 @@ export const uploadImageToCloudinary = async (imageFile: File): Promise<string> 
 };
 
 export const uploadReportToServer = async (data: {
-  nom_douar: string;
-  image_url: string;
   latitude: number;
   longitude: number;
-  type_risk: string;
-}) => {
+  lien_image: string;
+  lien_maps: string;
+}): Promise<void> => {
   try {
-    const response = await fetch(SCRIPT_URL, {
+    // نستخدم fetch مع mode no-cors لأن Google Apps Script يسبب أحياناً مشاكل CORS رغم نجاح الإرسال
+    await fetch(SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: {
@@ -39,10 +42,8 @@ export const uploadReportToServer = async (data: {
       },
       body: JSON.stringify(data),
     });
-    
-    return { status: 'success', message: 'تم حفظ البيانات بنجاح' };
   } catch (error) {
-    console.error('Server upload failed:', error);
+    console.error("Server upload error:", error);
     throw error;
   }
 };

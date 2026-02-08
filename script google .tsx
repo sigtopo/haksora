@@ -1,50 +1,40 @@
+
 // @ts-nocheck
 /* 
-  This file contains Google Apps Script code. 
-  The declarations below are added to resolve TypeScript compilation errors 
-  when this file is included in a web project's source tree.
+  هذا الكود يتم وضعه في Google Apps Script الملحق بجدول البيانات
 */
-declare var SpreadsheetApp: any;
-declare var ContentService: any;
-
-function doPost(e: any) {
+function doPost(e) {
   try {
-    // فتح الورقة
-    // Added comment: This line uses the Google Apps Script SpreadsheetApp global
-    var ss = SpreadsheetApp.openById("17GNjvV79hW5STONMzHoKlG2-49ERUzl3-ZKpjZxhhsQ");
-    var sheet = ss.getSheets()[0];
-
-    // التأكد من وجود الصف الأول (العناوين)
-    if(sheet.getLastRow() === 0) {
-      sheet.appendRow(["اسم الدوار", "رابط الصورة", "الإحداثيات", "نوع الخطر"]);
-    }
-
-    // قراءة البيانات من POST
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
     var data = JSON.parse(e.postData.contents);
 
-    var nomDouar = data.nom_douar || "";
-    var imageUrl = data.image_url || "";
-    var latitude = data.latitude || "";
-    var longitude = data.longitude || "";
-    var typeRisk = data.type_risk || "";
+    // صياغة موقع XY
+    var locationXY = "";
+    if (data.latitude && data.longitude) {
+      locationXY = data.latitude + ", " + data.longitude;
+    }
 
-    // دمج الإحداثيات في حقل واحد
-    var coordinates = latitude && longitude ? latitude + ", " + longitude : "";
+    // رابط الصورة (قابل للنقر في جدول البيانات)
+    var imageLink = "";
+    if (data.lien_image) {
+      imageLink = '=HYPERLINK("' + data.lien_image + '","عرض الصورة")';
+    }
 
-    // إضافة الصف الجديد
-    sheet.appendRow([nomDouar, imageUrl, coordinates, typeRisk]);
+    // إضافة الصف (الإحداثيات، رابط الخريطة، رابط الصورة)
+    sheet.appendRow([
+      locationXY,            // العمود 1: الإحداثيات XY
+      data.lien_maps || "",  // العمود 2: رابط الخريطة
+      imageLink              // العمود 3: رابط الصورة
+    ]);
 
-    // Added comment: This uses the ContentService global to return a JSON response
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "success",
-      message: "تم حفظ البيانات في Google Sheet بنجاح!"
-    })).setMimeType(ContentService.MimeType.JSON);
+    return ContentService
+      .createTextOutput("تم إرسال البيانات بنجاح")
+      .setMimeType(ContentService.MimeType.TEXT);
 
-  } catch(err: any) {
-    // Added comment: Error handling using ContentService for GAS
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "error",
-      message: "حدث خطأ: " + err.message
-    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    Logger.log(err);
+    return ContentService
+      .createTextOutput("حدث خطأ أثناء إرسال البيانات")
+      .setMimeType(ContentService.MimeType.TEXT);
   }
 }
