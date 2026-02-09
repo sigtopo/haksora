@@ -21,58 +21,78 @@
       }
       .custom-popup .leaflet-popup-content { margin: 0 !important; width: 200px !important; }
 
-      /* Google Maps Style User Location Dot */
-      .google-style-dot {
-        width: 18px;
-        height: 18px;
-        background: #4285F4;
-        border: 3px solid white;
+      /* Blinking Blue Dot (Google Maps Style) */
+      .blinking-dot-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .blinking-dot {
+        width: 14px;
+        height: 14px;
+        background-color: #4285F4;
+        border: 2.5px solid white;
         border-radius: 50%;
-        box-shadow: 0 0 8px rgba(0,0,0,0.3);
+        box-shadow: 0 0 5px rgba(66, 133, 244, 0.5);
         position: relative;
       }
-      .google-style-dot::after {
+      .blinking-dot::after {
         content: '';
         position: absolute;
-        top: -3px;
-        left: -3px;
-        right: -3px;
-        bottom: -3px;
+        top: -6px;
+        left: -6px;
+        right: -6px;
+        bottom: -6px;
         border-radius: 50%;
-        background: rgba(66, 133, 244, 0.3);
-        animation: ripple 2s infinite;
+        background-color: rgba(66, 133, 244, 0.4);
+        animation: pulse-dot 1.5s infinite ease-out;
       }
 
-      @keyframes ripple {
-        0% { transform: scale(1); opacity: 1; }
-        100% { transform: scale(3); opacity: 0; }
+      @keyframes pulse-dot {
+        0% { transform: scale(0.5); opacity: 1; }
+        100% { transform: scale(2.5); opacity: 0; }
       }
 
-      /* Confetti Animation */
-      .confetti {
-        position: fixed;
-        width: 10px;
-        height: 10px;
-        top: -10px;
-        z-index: 9999;
-        border-radius: 2px;
-        animation: fall 3s linear forwards;
+      /* Expressive Map Crosshair */
+      .map-crosshair {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1000;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
       }
-
-      @keyframes fall {
-        to { transform: translateY(100vh) rotate(720deg); }
+      .crosshair-pin {
+        margin-top: -32px;
+        filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+        animation: bounce-pin 0.8s infinite alternate ease-in-out;
+      }
+      @keyframes bounce-pin {
+        from { transform: translateY(0); }
+        to { transform: translateY(-10px); }
       }
 
       .glass-modal {
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(15px);
-        -webkit-backdrop-filter: blur(15px);
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
       }
 
-      .progress-ring__circle {
-        transition: stroke-dashoffset 1s linear;
-        transform: rotate(-90deg);
-        transform-origin: 50% 50%;
+      .confetti {
+        position: fixed;
+        width: 8px;
+        height: 8px;
+        top: -10px;
+        z-index: 9999;
+        border-radius: 50%;
+        animation: fall 3s linear forwards;
+      }
+      @keyframes fall {
+        to { transform: translateY(100vh) rotate(360deg); }
       }
     </style>
   <script type="importmap">
