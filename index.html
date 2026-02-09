@@ -9,8 +9,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-      body { font-family: 'Tajawal', sans-serif; -webkit-tap-highlight-color: transparent; }
-      .leaflet-container { height: 100%; width: 100%; z-index: 1; background: #000; }
+      body { font-family: 'Tajawal', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #000; }
+      .leaflet-container { height: 100%; width: 100%; z-index: 1; background: #000 !important; }
       
       ::-webkit-scrollbar { display: none; }
       
@@ -23,8 +23,8 @@
 
       /* Pulse Effect for User Location */
       .user-location-pulse {
-        width: 14px;
-        height: 14px;
+        width: 16px;
+        height: 16px;
         background: #2196F3;
         border: 2px solid white;
         border-radius: 50%;
@@ -38,21 +38,31 @@
         100% { box-shadow: 0 0 0 0 rgba(33, 150, 243, 0); }
       }
 
-      /* Map Crosshair */
-      .map-crosshair {
+      /* Confetti Animation */
+      .confetti {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        background-color: #f2d74e;
         position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 1000;
-        pointer-events: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        top: -10px;
+        z-index: 9999;
+        border-radius: 50%;
+        animation: fall 3s linear forwards;
       }
-      .map-crosshair-vertical { width: 1px; height: 30px; background: #ef4444; position: absolute; }
-      .map-crosshair-horizontal { width: 30px; height: 1px; background: #ef4444; position: absolute; }
-      .map-crosshair-center { width: 6px; height: 6px; border: 1px solid white; background: #ef4444; border-radius: 50%; z-index: 1001; }
+
+      @keyframes fall {
+        to {
+          transform: translateY(100vh) rotate(360deg);
+        }
+      }
+
+      /* Progress Ring */
+      .progress-ring__circle {
+        transition: stroke-dashoffset 0.35s;
+        transform: rotate(-90deg);
+        transform-origin: 50% 50%;
+      }
     </style>
   <script type="importmap">
 {
