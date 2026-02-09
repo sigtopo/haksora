@@ -2,7 +2,6 @@
 const CLOUD_NAME = "dyulqoqyd";
 const UPLOAD_PRESET = "khatar";
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
-// رابط السكريبت الجديد المخصص
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwJ5AUAusHA1SknpkYrOhFACvw9bhOGyNTpBzJSAbB4pCBeWAl1RbCJjsCYLLpo10NCRg/exec';
 
 export const uploadImageToCloudinary = async (imageFile: File): Promise<string> => {
@@ -29,6 +28,7 @@ export const uploadImageToCloudinary = async (imageFile: File): Promise<string> 
 
 export const uploadReportToServer = async (data: {
   nom_douar: string;
+  danger_level: string;
   latitude: number;
   longitude: number;
   image_url: string;
