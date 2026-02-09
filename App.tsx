@@ -5,7 +5,7 @@ import L from 'leaflet';
 import { 
   X, Loader2, MapPin, Camera, Send, Clock, 
   RefreshCw, Upload, AlertCircle, CheckCircle, ChevronRight, ImagePlus, ChevronDown, 
-  Map as MapIcon, Globe, Info, Heart, PartyPopper, Navigation, MessageCircle
+  Map as MapIcon, Globe, Heart, PartyPopper, Navigation, MessageCircle
 } from 'lucide-react';
 import { Report, GeoLocation, MapMode } from './types';
 import { uploadReportToServer, uploadImageToCloudinary } from './services/serverService';
@@ -30,6 +30,14 @@ const reportIcon = L.divIcon({
   html: `<div class="pulse-marker"></div>`,
   iconSize: [14, 14],
   iconAnchor: [7, 7]
+});
+
+// Temporary marker for picking
+const pickingIcon = L.divIcon({
+  className: 'custom-marker',
+  html: `<div style="background: #ef4444; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);"></div>`,
+  iconSize: [20, 20],
+  iconAnchor: [10, 10]
 });
 
 const MapController: React.FC<{ 
@@ -69,7 +77,7 @@ const App: React.FC = () => {
   const changeImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('disaster_reports_v2');
+    const saved = localStorage.getItem('disaster_reports_v3');
     if (saved) setReports(JSON.parse(saved));
   }, []);
 
@@ -82,16 +90,18 @@ const App: React.FC = () => {
       if (data && data.display_name) {
         setPlaceName(data.display_name);
       } else {
-        setPlaceName(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+        setPlaceName(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
       }
     } catch { 
-      setPlaceName(`${lat.toFixed(5)}, ${lng.toFixed(5)}`); 
+      setPlaceName(`${lat.toFixed(6)}, ${lng.toFixed(6)}`); 
     }
   };
 
   const handleMapClick = (loc: GeoLocation) => {
     setPickedLocation(loc);
     setShowSourceSelector(true);
+    // Visual feedback for clicked point
+    setMapTarget({ center: [loc.lat, loc.lng], zoom: 16 });
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, isChangeOnly = false) => {
@@ -124,8 +134,8 @@ const App: React.FC = () => {
         setMapTarget({ center: [loc.lat, loc.lng], zoom: 18 });
         getFullAddress(loc.lat, loc.lng);
         setLoading(false);
-        // If we are in the source selector, we proceed to source selection.
-        // If we are already in form, it just updates location.
+        // Directly open source selector after finding current location
+        setShowSourceSelector(true);
       },
       () => { setLoading(false); alert("يرجى تفعيل الـ GPS"); },
       { enableHighAccuracy: true }
@@ -158,7 +168,7 @@ const App: React.FC = () => {
       };
       const updated = [newReport, ...reports];
       setReports(updated);
-      localStorage.setItem('disaster_reports_v2', JSON.stringify(updated));
+      localStorage.setItem('disaster_reports_v3', JSON.stringify(updated));
       setLoading(false);
       setShowSuccess(true);
       setTimeout(() => { setShowSuccess(false); resetForm(); }, 3000);
@@ -243,6 +253,10 @@ const App: React.FC = () => {
           />
           <MapController flyTo={mapTarget} onMapClick={handleMapClick} />
           
+          {pickedLocation && !isFormOpen && (
+            <Marker position={[pickedLocation.lat, pickedLocation.lng]} icon={pickingIcon} />
+          )}
+
           {reports.map((r) => (
             <Marker key={r.id} position={[r.location.lat, r.location.lng]} icon={reportIcon}>
               <Popup className="custom-popup">
@@ -294,12 +308,12 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Source Selector Modal (Appears after map click) */}
+        {/* Source Selector Modal (Appears after map click or GPS button) */}
         {showSourceSelector && (
           <div className="fixed inset-0 z-[3500] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-md">
             <div className="bg-white rounded-[2.5rem] p-10 w-full max-w-[380px] shadow-2xl text-center animate-slide-up">
               <div className="mb-6 flex justify-center"><div className="p-5 bg-orange-100 rounded-3xl text-orange-600 animate-pulse"><Camera size={38}/></div></div>
-              <h3 className="text-xl font-bold text-slate-800 mb-6">إضافة صورة للمكان المختار</h3>
+              <h3 className="text-xl font-bold text-slate-800 mb-6">إضافة صورة للموقع المحدد</h3>
               <div className="space-y-4">
                  <button onClick={() => { fileInputRef.current?.setAttribute('capture', 'environment'); fileInputRef.current?.click(); }} className="w-full p-5 bg-blue-600 text-white rounded-2xl flex items-center justify-center gap-4 font-bold shadow-lg active:scale-95 transition-all">
                     <Camera size={22} /> التقاط صورة حية
@@ -308,7 +322,7 @@ const App: React.FC = () => {
                     <Upload size={22} className="text-orange-500" /> اختيار من المعرض
                  </button>
               </div>
-              <button onClick={resetForm} className="mt-8 text-slate-400 text-xs font-bold underline">تجاهل النقطة</button>
+              <button onClick={resetForm} className="mt-8 text-slate-400 text-xs font-bold underline">إلغاء النقطة</button>
             </div>
           </div>
         )}
@@ -333,20 +347,17 @@ const App: React.FC = () => {
 
                 <div className="space-y-6 text-right">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider px-1">الموقع الجغرافي (كامل)</label>
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider px-1">الموقع الجغرافي المعتمد</label>
                     <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-start gap-3">
                        <MapPin size={18} className="text-blue-600 mt-1 flex-shrink-0" />
                        <div className="text-[12px] font-bold text-slate-800 break-words w-full text-right leading-relaxed">
-                          {placeName || "جاري التحديد..."}
+                          {placeName || "جاري استرجاع العنوان الكامل..."}
                        </div>
                     </div>
-                    <button onClick={useMyPosition} className="text-[10px] text-blue-600 font-bold flex items-center gap-1 mt-1 justify-end px-1 hover:underline">
-                       تحديث حسب موقعي الحالي <Navigation size={10} />
-                    </button>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider px-1">حالة المنطقة المنكوبة</label>
-                    <textarea rows={2} value={dangerLevel} onChange={(e) => setDangerLevel(e.target.value)} className="w-full bg-slate-50 p-4 rounded-2xl border border-slate-100 text-sm font-medium outline-none text-slate-700 resize-none focus:border-blue-400 transition-all" placeholder="صف نوع الضرر أو المساعدة المطلوبة..." />
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider px-1">حالة المنطقة والاحتياجات</label>
+                    <textarea rows={2} value={dangerLevel} onChange={(e) => setDangerLevel(e.target.value)} className="w-full bg-slate-50 p-4 rounded-2xl border border-slate-100 text-sm font-medium outline-none text-slate-700 resize-none focus:border-blue-400 transition-all" placeholder="أدخل تفاصيل الأضرار أو نوع المساعدة المطلوبة..." />
                   </div>
                 </div>
               </div>
@@ -371,10 +382,10 @@ const App: React.FC = () => {
                 <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-white/40 shadow-2xl">
                    <PartyPopper size={48} className="text-orange-300" />
                 </div>
-                <h2 className="text-3xl font-bold mb-3">تهانينا! تم الإرسال</h2>
-                <p className="text-lg opacity-90 max-w-xs mx-auto mb-8">مساهمتك قد تنقذ حياة. تم توثيق النقطة بنجاح وتوجيهها لفرق الاستجابة الميدانية.</p>
+                <h2 className="text-3xl font-bold mb-3">شكراً جزيلاً!</h2>
+                <p className="text-lg opacity-90 max-w-xs mx-auto mb-8">تم توثيق البلاغ بنجاح. مساهمتك الميدانية هي الخطوة الأولى لإنقاذ الأرواح في المناطق المتضررة.</p>
                 <div className="bg-white text-blue-700 px-8 py-3 rounded-full inline-flex items-center gap-2 font-bold shadow-xl">
-                   <CheckCircle size={20} /> شكراً لوعيك المجتمعي
+                   <CheckCircle size={20} /> تم الحفظ في قاعدة البيانات
                 </div>
              </div>
           </div>
