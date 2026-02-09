@@ -2,7 +2,8 @@
 const CLOUD_NAME = "dyulqoqyd";
 const UPLOAD_PRESET = "khatar";
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwjNwL7EDAZQXnt8LL9Aca0M4Io5zx5gWR2w_KR-5fn/exec';
+// رابط السكريبت الجديد المخصص
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwJ5AUAusHA1SknpkYrOhFACvw9bhOGyNTpBzJSAbB4pCBeWAl1RbCJjsCYLLpo10NCRg/exec';
 
 export const uploadImageToCloudinary = async (imageFile: File): Promise<string> => {
   const formData = new FormData();
@@ -27,14 +28,12 @@ export const uploadImageToCloudinary = async (imageFile: File): Promise<string> 
 };
 
 export const uploadReportToServer = async (data: {
-  place_name: string;
+  nom_douar: string;
   latitude: number;
   longitude: number;
-  lien_maps: string;
-  lien_image: string;
+  image_url: string;
 }): Promise<void> => {
   try {
-    // السكريبت الجديد يتوقع هذه الحقول بالضبط ليقوم هو بتوليد التاريخ والوقت داخلياً أو استقباله
     await fetch(SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
