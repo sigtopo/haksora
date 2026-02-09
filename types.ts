@@ -7,18 +7,9 @@ export interface GeoLocation {
 export interface Report {
   id: string;
   location: GeoLocation;
-  timestamp: number;
-  nom_douar: string;
-  imageUrl?: string;
-  type_risk: string;
+  timestamp: string;
+  place_name: string;
+  imageUrl: string;
 }
 
 export type MapMode = 'VIEW' | 'PICK_LOCATION';
-
-export const RISK_TYPES = [
-  "فيضانات",
-  "انهيار أتربة",
-  "تشققات مباني",
-  "انقطاع طريق",
-  "أخرى"
-];
