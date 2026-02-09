@@ -68,6 +68,7 @@ const App: React.FC = () => {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [mapMode, setMapMode] = useState<'VIEW' | 'PICK'>('VIEW');
+  const [showWhatsAppNum, setShowWhatsAppNum] = useState(false);
   
   const [placeName, setPlaceName] = useState("");
   const [dangerLevel, setDangerLevel] = useState(""); 
@@ -83,7 +84,7 @@ const App: React.FC = () => {
   const changeImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('haksora_reports_v1');
+    const saved = localStorage.getItem('haksora_reports_v2');
     if (saved) setReports(JSON.parse(saved));
   }, []);
 
@@ -159,7 +160,21 @@ const App: React.FC = () => {
     }
   };
 
-  const useMyPosition = () => {
+  const centerOnMeOnly = () => {
+    if (!navigator.geolocation) return;
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setMapTarget({ center: [loc.lat, loc.lng], zoom: 18 });
+        setLoading(false);
+      },
+      () => { setLoading(false); alert("يرجى تفعيل الـ GPS"); },
+      { enableHighAccuracy: true }
+    );
+  };
+
+  const useMyPositionForReport = () => {
     if (!navigator.geolocation) return;
     setLoading(true);
     navigator.geolocation.getCurrentPosition(
@@ -218,7 +233,7 @@ const App: React.FC = () => {
       };
       const updated = [newReport, ...reports];
       setReports(updated);
-      localStorage.setItem('haksora_reports_v1', JSON.stringify(updated));
+      localStorage.setItem('haksora_reports_v2', JSON.stringify(updated));
       setLoading(false);
       setShowSuccess(true);
       setTimeout(() => { setShowSuccess(false); resetForm(); }, 3000);
@@ -240,10 +255,6 @@ const App: React.FC = () => {
     setShowAddMenu(false);
     setIsMinimized(false);
     setMapMode('VIEW');
-  };
-
-  const openWhatsApp = () => {
-    window.open("https://wa.me/212668090285", "_blank");
   };
 
   return (
@@ -318,16 +329,13 @@ const App: React.FC = () => {
           ))}
         </MapContainer>
 
-        {/* Floating Controls */}
-        <div className="absolute bottom-24 inset-x-0 flex justify-between px-6 z-[2000] pointer-events-none">
-          <button onClick={openWhatsApp} className="pointer-events-auto w-16 h-16 whatsapp-bg text-white rounded-full flex items-center justify-center shadow-2xl fab-shadow animate-bounce active:scale-90 transition-transform border-4 border-white/20">
-            <MessageCircle size={34} fill="white" />
-          </button>
-          
-          <button onClick={useMyPosition} className="pointer-events-auto w-16 h-16 bg-white/95 backdrop-blur-md text-green-600 rounded-full flex items-center justify-center shadow-2xl fab-shadow active:scale-90 transition-transform border-4 border-white/20">
-            <Navigation size={28} className="fill-green-50" />
-          </button>
-        </div>
+        {/* Locate Me Button - Top Right & Small */}
+        <button 
+          onClick={centerOnMeOnly} 
+          className="absolute top-24 right-6 z-[2000] w-10 h-10 bg-white/95 backdrop-blur-md text-green-600 rounded-xl flex items-center justify-center shadow-2xl active:scale-90 transition-transform border border-white/30"
+        >
+          <Navigation size={20} className="fill-green-50" />
+        </button>
 
         {/* Region Picker with Tree Style Colors & Search */}
         {showRegionPicker && (
@@ -339,7 +347,7 @@ const App: React.FC = () => {
                   <Globe size={40} />
                 </div>
                 <h2 className="text-2xl font-black mb-1">اختر الجهة المستهدفة</h2>
-                <p className="text-sm opacity-90 font-medium">حدد منطقتك أو ابحث عن مكان محدد</p>
+                <p className="text-sm opacity-90 font-medium">حدد منطقتك لتسهيل عملية الرصد</p>
                 
                 {/* Search Bar */}
                 <div className="mt-6 relative">
@@ -409,7 +417,7 @@ const App: React.FC = () => {
               <h3 className="text-xl font-black text-white mb-6 drop-shadow-md">أين تقع هذه المنطقة؟</h3>
               
               <div className="space-y-4">
-                 <button onClick={useMyPosition} className="w-full p-5 bg-green-600 text-white rounded-3xl flex items-center justify-center gap-4 font-black shadow-xl active:scale-95 transition-all border-2 border-white/20">
+                 <button onClick={useMyPositionForReport} className="w-full p-5 bg-green-600 text-white rounded-3xl flex items-center justify-center gap-4 font-black shadow-xl active:scale-95 transition-all border-2 border-white/20">
                     <Navigation size={22} /> موقعي الحالي (GPS)
                  </button>
                  <button 
@@ -521,9 +529,21 @@ const App: React.FC = () => {
         <input ref={changeImageInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => handleImageChange(e, true)} />
       </main>
 
-      <footer className="z-[1001] bg-slate-900 border-t border-white/5 p-5 text-center text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] flex items-center flex-col gap-2">
+      <footer className="z-[1001] bg-slate-900 border-t border-white/5 p-4 text-center text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] flex flex-col items-center gap-1">
         <div className="flex items-center gap-4">
           <span className="text-green-500">HAKSORA</span>
+          
+          <button 
+            onClick={() => setShowWhatsAppNum(!showWhatsAppNum)}
+            className="flex items-center justify-center transition-all active:scale-95 bg-green-500/10 p-2 rounded-lg"
+          >
+            {showWhatsAppNum ? (
+              <span className="text-[11px] text-green-400 font-bold tracking-normal">+212668090285</span>
+            ) : (
+              <MessageCircle size={14} className="text-green-500" />
+            )}
+          </button>
+          
           <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
           <span>الاستجابة الميدانية</span>
         </div>
