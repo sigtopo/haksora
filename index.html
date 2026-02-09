@@ -4,51 +4,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>هـــاك صورة</title>
+    <title>نظام الرصد الميداني الموحد</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-      body { font-family: 'Tajawal', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #000; }
-      .leaflet-container { height: 100%; width: 100%; z-index: 1; background: #000 !important; }
+      body { font-family: 'Tajawal', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #f8fafc; color: #1e293b; }
+      .leaflet-container { height: 100%; width: 100%; z-index: 1; background: #cbd5e1 !important; }
       
       ::-webkit-scrollbar { display: none; }
       
       .custom-popup .leaflet-popup-content-wrapper {
         border-radius: 12px;
         padding: 0;
-        overflow: hidden;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
       }
-      .custom-popup .leaflet-popup-content { margin: 0 !important; width: 200px !important; }
+      .custom-popup .leaflet-popup-content { margin: 0 !important; width: 180px !important; }
 
-      /* Professional Location Dot */
-      .google-style-dot {
-        width: 20px;
-        height: 20px;
-        background: #4285F4;
-        border: 3px solid white;
-        border-radius: 50%;
-        box-shadow: 0 0 10px rgba(66, 133, 244, 0.5);
-        position: relative;
-      }
-      .google-style-dot::after {
-        content: '';
-        position: absolute;
-        top: -4px;
-        left: -4px;
-        right: -4px;
-        bottom: -4px;
-        border-radius: 50%;
-        background: rgba(66, 133, 244, 0.2);
-        animation: ripple 2s infinite;
-      }
-
-      @keyframes ripple {
-        0% { transform: scale(1); opacity: 1; }
-        100% { transform: scale(3); opacity: 0; }
-      }
-
-      /* Expressive Map Crosshair */
+      /* Simplified Target Crosshair - Icon Only */
       .map-crosshair {
         position: absolute;
         top: 50%;
@@ -60,33 +33,59 @@
         align-items: center;
         justify-content: center;
       }
-      .crosshair-pin {
-        margin-top: -24px;
-        filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
-        animation: bounce-pin 1s infinite alternate;
+      .target-simple {
+        width: 64px;
+        height: 64px;
+        border: 2px solid #2563eb;
+        border-radius: 50%;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(37, 99, 235, 0.05);
       }
-      @keyframes bounce-pin {
-        from { transform: translateY(0); }
-        to { transform: translateY(-8px); }
+      .target-simple::before {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 2px;
+        background-color: #2563eb;
+      }
+      .target-simple::after {
+        content: '';
+        position: absolute;
+        width: 2px;
+        height: 100%;
+        background-color: #2563eb;
+      }
+      .target-center {
+        width: 10px;
+        height: 10px;
+        background-color: #e11d48;
+        border-radius: 50%;
+        z-index: 2;
+        border: 2px solid white;
+        box-shadow: 0 0 10px rgba(225, 29, 72, 0.5);
       }
 
       .glass-modal {
-        background: rgba(255, 255, 255, 0.95);
+        background: rgba(255, 255, 255, 0.98);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
       }
 
-      .confetti {
+      /* Side Marginal Indicator */
+      .side-status-indicator {
         position: fixed;
-        width: 8px;
-        height: 8px;
-        top: -10px;
-        z-index: 9999;
-        border-radius: 50%;
-        animation: fall 3s linear forwards;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 3000;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       }
-      @keyframes fall {
-        to { transform: translateY(100vh) rotate(360deg); }
+
+      .dropdown-shadow {
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
       }
     </style>
   <script type="importmap">
@@ -106,7 +105,7 @@
 }
 </script>
 </head>
-  <body class="bg-black overflow-hidden">
+  <body class="overflow-hidden bg-slate-50">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
