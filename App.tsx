@@ -5,24 +5,24 @@ import L from 'leaflet';
 import { 
   X, Loader2, MapPin, Camera, Send, Clock, 
   RefreshCw, Upload, AlertCircle, CheckCircle, ChevronRight, ImagePlus, ChevronDown, 
-  Map as MapIcon, Globe, Heart, PartyPopper, Navigation, MessageCircle
+  Map as MapIcon, Globe, Heart, PartyPopper, Navigation, MessageCircle, Search
 } from 'lucide-react';
 import { Report, GeoLocation, MapMode } from './types';
 import { uploadReportToServer, uploadImageToCloudinary } from './services/serverService';
 
 const REGIONS = [
-  { id: 1, name: "طنجة - تطوان - الحسيمة", center: [35.4, -5.5], zoom: 9 },
-  { id: 2, name: "الشرق", center: [34.0, -2.5], zoom: 8 },
-  { id: 3, name: "فاس - مكناس", center: [33.8, -4.5], zoom: 9 },
-  { id: 4, name: "الرباط - سلا - القنيطرة", center: [34.0, -6.3], zoom: 10 },
-  { id: 5, name: "بني ملال - خنيفرة", center: [32.5, -6.2], zoom: 9 },
-  { id: 6, name: "الدار البيضاء - سطات", center: [33.3, -7.5], zoom: 10 },
-  { id: 7, name: "مراكش - آسفي", center: [31.6, -8.3], zoom: 9 },
-  { id: 8, name: "درعة - تافيلالت", center: [31.3, -4.5], zoom: 8 },
-  { id: 9, name: "سوس - ماسة", center: [30.2, -8.8], zoom: 9 },
-  { id: 10, name: "كلميم - واد نون", center: [28.5, -10.5], zoom: 8 },
-  { id: 11, name: "العيون - الساقية الحمراء", center: [26.5, -12.5], zoom: 8 },
-  { id: 12, name: "الداخلة - وادي الذهب", center: [23.5, -14.8], zoom: 8 },
+  { id: 1, name: "طنجة - تطوان - الحسيمة", center: [35.4, -5.5], zoom: 9, color: "bg-blue-500" },
+  { id: 2, name: "الشرق", center: [34.0, -2.5], zoom: 8, color: "bg-emerald-500" },
+  { id: 3, name: "فاس - مكناس", center: [33.8, -4.5], zoom: 9, color: "bg-amber-500" },
+  { id: 4, name: "الرباط - سلا - القنيطرة", center: [34.0, -6.3], zoom: 10, color: "bg-indigo-500" },
+  { id: 5, name: "بني ملال - خنيفرة", center: [32.5, -6.2], zoom: 9, color: "bg-lime-500" },
+  { id: 6, name: "الدار البيضاء - سطات", center: [33.3, -7.5], zoom: 10, color: "bg-rose-500" },
+  { id: 7, name: "مراكش - آسفي", center: [31.6, -8.3], zoom: 9, color: "bg-orange-500" },
+  { id: 8, name: "درعة - تافيلالت", center: [31.3, -4.5], zoom: 8, color: "bg-cyan-500" },
+  { id: 9, name: "سوس - ماسة", center: [30.2, -8.8], zoom: 9, color: "bg-purple-500" },
+  { id: 10, name: "كلميم - واد نون", center: [28.5, -10.5], zoom: 8, color: "bg-teal-500" },
+  { id: 11, name: "العيون - الساقية الحمراء", center: [26.5, -12.5], zoom: 8, color: "bg-red-500" },
+  { id: 12, name: "الداخلة - وادي الذهب", center: [23.5, -14.8], zoom: 8, color: "bg-pink-500" },
 ];
 
 const reportIcon = L.divIcon({
@@ -34,9 +34,9 @@ const reportIcon = L.divIcon({
 
 const pickingIcon = L.divIcon({
   className: 'custom-marker',
-  html: `<div style="background: #ef4444; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);"></div>`,
-  iconSize: [20, 20],
-  iconAnchor: [10, 10]
+  html: `<div style="background: #ef4444; width: 24px; height: 24px; border-radius: 50%; border: 4px solid white; box-shadow: 0 0 20px rgba(239, 68, 68, 0.8);"></div>`,
+  iconSize: [24, 24],
+  iconAnchor: [12, 12]
 });
 
 const MapController: React.FC<{ 
@@ -73,14 +73,39 @@ const App: React.FC = () => {
   const [dangerLevel, setDangerLevel] = useState(""); 
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // Search logic
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const changeImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('disaster_reports_v5');
+    const saved = localStorage.getItem('haksora_reports_v1');
     if (saved) setReports(JSON.parse(saved));
   }, []);
+
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    if (query.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=ma&limit=5&addressdetails=1`, {
+        headers: { 'Accept-Language': 'ar' }
+      });
+      const data = await response.json();
+      setSearchResults(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const getFullAddress = async (lat: number, lng: number) => {
     try {
@@ -103,12 +128,10 @@ const App: React.FC = () => {
       setPickedLocation(loc);
       setMapTarget({ center: [loc.lat, loc.lng], zoom: 17 });
       if (selectedImage) {
-        // We were in pick mode after selecting an image
         setMapMode('VIEW');
         getFullAddress(loc.lat, loc.lng);
         setIsFormOpen(true);
       } else {
-        // Map click first, then image
         setShowLocationPicker(false);
         fileInputRef.current?.click();
       }
@@ -128,7 +151,6 @@ const App: React.FC = () => {
             getFullAddress(pickedLocation.lat, pickedLocation.lng);
             setIsFormOpen(true);
           } else {
-            // Image selected first, now ask for location
             setShowLocationPicker(true);
           }
         }
@@ -160,9 +182,18 @@ const App: React.FC = () => {
     );
   };
 
-  const selectRegion = (region: typeof REGIONS[0]) => {
+  const selectRegion = (region: any) => {
     setMapTarget({ center: region.center as [number, number], zoom: region.zoom });
     setShowRegionPicker(false);
+  };
+
+  const selectSearchResult = (result: any) => {
+    const loc = { lat: parseFloat(result.lat), lng: parseFloat(result.lon) };
+    setMapTarget({ center: [loc.lat, loc.lng], zoom: 17 });
+    setPickedLocation(loc);
+    setShowRegionPicker(false);
+    setSearchResults([]);
+    setSearchQuery("");
   };
 
   const handleSubmit = async () => {
@@ -173,7 +204,7 @@ const App: React.FC = () => {
       const imageUrl = await uploadImageToCloudinary(selectedImage);
       await uploadReportToServer({
         nom_douar: placeName,
-        danger_level: dangerLevel || "بلاغ مناطق منكوبة",
+        danger_level: dangerLevel || "بلاغ هاك صورة",
         latitude: pickedLocation.lat,
         longitude: pickedLocation.lng,
         image_url: imageUrl
@@ -187,7 +218,7 @@ const App: React.FC = () => {
       };
       const updated = [newReport, ...reports];
       setReports(updated);
-      localStorage.setItem('disaster_reports_v5', JSON.stringify(updated));
+      localStorage.setItem('haksora_reports_v1', JSON.stringify(updated));
       setLoading(false);
       setShowSuccess(true);
       setTimeout(() => { setShowSuccess(false); resetForm(); }, 3000);
@@ -218,42 +249,44 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-950 overflow-hidden relative">
       
-      {/* Rescue Header */}
-      <header className="z-[2000] bg-[#1d4ed8]/80 backdrop-blur-md text-white px-5 py-4 flex items-center justify-between shadow-2xl border-b border-white/10">
+      {/* Dynamic Moroccan Header */}
+      <header className="z-[2000] bg-gradient-to-r from-red-600 to-green-600 text-white px-5 py-4 flex items-center justify-between shadow-2xl border-b border-white/20">
         <div className="flex items-center gap-3">
-          <div className="bg-orange-500 p-2 rounded-xl border border-white/20 shadow-inner">
-            <Heart size={22} className="text-white fill-white" />
+          <div className="bg-white/20 p-2 rounded-2xl border border-white/30 backdrop-blur-sm shadow-inner">
+            <Camera size={24} className="text-white drop-shadow-md" />
           </div>
           <div>
-            <h1 className="text-[14px] font-bold tracking-tight">مواطنون من أجل الإغاثة</h1>
-            <p className="text-[8px] text-blue-100 opacity-80 uppercase font-bold tracking-widest">الاستجابة الميدانية للمناطق المنكوبة</p>
+            <h1 className="text-[20px] font-black tracking-tight leading-none italic flex items-baseline gap-2">
+              Haksora <span className="text-[16px] not-italic font-bold">هاك صورة</span>
+            </h1>
+            <p className="text-[8px] text-white/80 uppercase font-black tracking-[0.2em]">الاستجابة الميدانية السريعة</p>
           </div>
         </div>
         
         <div className="flex items-center gap-2">
            <button 
              onClick={() => setShowRegionPicker(true)}
-             className="p-2.5 bg-white/10 rounded-xl hover:bg-white/20 transition-all border border-white/10"
+             className="p-3 bg-white/20 rounded-2xl hover:bg-white/30 transition-all border border-white/30"
            >
-             <Globe size={18} />
+             <Globe size={20} />
            </button>
            <div className="relative">
               <button 
                 onClick={() => setShowAddMenu(!showAddMenu)}
-                className="bg-orange-500 hover:bg-orange-600 px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg transition-all active:scale-95 border border-white/20"
+                className="bg-white text-green-700 hover:bg-slate-50 px-5 py-2.5 rounded-2xl flex items-center gap-2 shadow-xl transition-all active:scale-95 border-2 border-green-500/20"
               >
                 <ImagePlus size={18} />
-                <span className="text-xs font-bold">إضافة رصد</span>
+                <span className="text-xs font-black">رصد</span>
               </button>
               
               {showAddMenu && (
-                <div className="absolute left-0 mt-3 w-48 bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 overflow-hidden animate-slide-up z-[3000]">
-                  <button onClick={() => { fileInputRef.current?.setAttribute('capture', 'environment'); fileInputRef.current?.click(); }} className="w-full px-5 py-4 text-right text-slate-800 hover:bg-blue-50/50 flex items-center gap-3 border-b border-slate-100/50">
-                    <Camera size={18} className="text-blue-600" />
+                <div className="absolute left-0 mt-3 w-48 bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/40 overflow-hidden animate-slide-up z-[3000]">
+                  <button onClick={() => { fileInputRef.current?.setAttribute('capture', 'environment'); fileInputRef.current?.click(); }} className="w-full px-6 py-4 text-right text-slate-800 hover:bg-red-50 flex items-center gap-3 border-b border-slate-100">
+                    <Camera size={20} className="text-red-600" />
                     <span className="text-sm font-bold">التقاط صورة</span>
                   </button>
-                  <button onClick={() => { fileInputRef.current?.removeAttribute('capture'); fileInputRef.current?.click(); }} className="w-full px-5 py-4 text-right text-slate-800 hover:bg-blue-50/50 flex items-center gap-3">
-                    <Upload size={18} className="text-orange-500" />
+                  <button onClick={() => { fileInputRef.current?.removeAttribute('capture'); fileInputRef.current?.click(); }} className="w-full px-6 py-4 text-right text-slate-800 hover:bg-green-50 flex items-center gap-3">
+                    <Upload size={20} className="text-green-600" />
                     <span className="text-sm font-bold">رفع ملف</span>
                   </button>
                 </div>
@@ -276,9 +309,9 @@ const App: React.FC = () => {
           {reports.map((r) => (
             <Marker key={r.id} position={[r.location.lat, r.location.lng]} icon={reportIcon}>
               <Popup className="custom-popup">
-                <div className="p-2 text-right bg-white rounded-lg">
-                  <p className="font-bold text-[10px] text-slate-800 leading-tight">{r.place_name}</p>
-                  <p className="text-[8px] text-slate-400 mt-1">{r.timestamp}</p>
+                <div className="p-3 text-right bg-white rounded-2xl shadow-xl border border-slate-100 min-w-[120px]">
+                  <p className="font-bold text-[10px] text-slate-800 leading-tight mb-1">{r.place_name}</p>
+                  <p className="text-[8px] text-slate-400 font-medium">{r.timestamp}</p>
                 </div>
               </Popup>
             </Marker>
@@ -287,14 +320,74 @@ const App: React.FC = () => {
 
         {/* Floating Controls */}
         <div className="absolute bottom-24 inset-x-0 flex justify-between px-6 z-[2000] pointer-events-none">
-          <button onClick={openWhatsApp} className="pointer-events-auto w-14 h-14 whatsapp-bg text-white rounded-full flex items-center justify-center shadow-2xl fab-shadow animate-bounce active:scale-90 transition-transform">
-            <MessageCircle size={30} fill="white" />
+          <button onClick={openWhatsApp} className="pointer-events-auto w-16 h-16 whatsapp-bg text-white rounded-full flex items-center justify-center shadow-2xl fab-shadow animate-bounce active:scale-90 transition-transform border-4 border-white/20">
+            <MessageCircle size={34} fill="white" />
           </button>
           
-          <button onClick={useMyPosition} className="pointer-events-auto w-14 h-14 bg-white/90 backdrop-blur-md text-blue-600 rounded-full flex items-center justify-center shadow-2xl fab-shadow active:scale-90 transition-transform border border-white/20">
-            <Navigation size={24} className="fill-blue-50" />
+          <button onClick={useMyPosition} className="pointer-events-auto w-16 h-16 bg-white/95 backdrop-blur-md text-green-600 rounded-full flex items-center justify-center shadow-2xl fab-shadow active:scale-90 transition-transform border-4 border-white/20">
+            <Navigation size={28} className="fill-green-50" />
           </button>
         </div>
+
+        {/* Region Picker with Tree Style Colors & Search */}
+        {showRegionPicker && (
+          <div className="fixed inset-0 z-[4000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+            <div className="bg-white/90 backdrop-blur-2xl rounded-[3rem] w-full max-w-[480px] shadow-2xl overflow-hidden border-2 border-white/30 animate-slide-up flex flex-col max-h-[90vh]">
+              <div className="p-8 text-center bg-gradient-to-br from-green-600 to-emerald-700 text-white relative flex-shrink-0">
+                <button onClick={() => setShowRegionPicker(false)} className="absolute top-6 left-6 p-2 bg-white/10 rounded-full hover:bg-white/20 transition-all"><X size={20}/></button>
+                <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-white/40 shadow-xl animate-pulse">
+                  <Globe size={40} />
+                </div>
+                <h2 className="text-2xl font-black mb-1">اختر الجهة المستهدفة</h2>
+                <p className="text-sm opacity-90 font-medium">حدد منطقتك أو ابحث عن مكان محدد</p>
+                
+                {/* Search Bar */}
+                <div className="mt-6 relative">
+                   <div className="bg-white rounded-2xl flex items-center px-4 py-3 shadow-2xl border border-white/40">
+                      <Search size={20} className="text-green-600 flex-shrink-0" />
+                      <input 
+                        type="text" 
+                        value={searchQuery}
+                        onChange={(e) => handleSearch(e.target.value)}
+                        placeholder="ابحث عن مدينة، قرية، أو شارع..." 
+                        className="w-full bg-transparent outline-none px-3 text-slate-800 font-bold placeholder:text-slate-400 text-sm"
+                      />
+                      {isSearching && <Loader2 size={18} className="animate-spin text-green-600" />}
+                   </div>
+                   
+                   {/* Search Results Dropdown */}
+                   {searchResults.length > 0 && (
+                     <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-10 text-right animate-slide-up">
+                        {searchResults.map((res, i) => (
+                          <button 
+                            key={i} 
+                            onClick={() => selectSearchResult(res)}
+                            className="w-full px-5 py-3 hover:bg-green-50 flex items-center gap-3 border-b last:border-0 border-slate-50 transition-all"
+                          >
+                             <MapPin size={16} className="text-red-500 flex-shrink-0" />
+                             <span className="text-[11px] font-bold text-slate-700 truncate">{res.display_name}</span>
+                          </button>
+                        ))}
+                     </div>
+                   )}
+                </div>
+              </div>
+
+              <div className="p-6 overflow-y-auto no-scrollbar grid grid-cols-2 gap-3 flex-grow">
+                {REGIONS.map(reg => (
+                  <button 
+                    key={reg.id} 
+                    onClick={() => selectRegion(reg)} 
+                    className={`${reg.color} p-5 rounded-[2rem] text-right text-white font-black text-[12px] shadow-lg active:scale-95 transition-all hover:brightness-110 hover:shadow-xl border-2 border-white/20 relative group overflow-hidden`}
+                  >
+                    <span className="relative z-10 drop-shadow-md">{reg.name}</span>
+                    <Globe size={40} className="absolute -bottom-4 -left-4 text-white/10 group-hover:scale-125 transition-transform" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Step 2: Location Selector (Transparent & Red X) */}
         {showLocationPicker && (
@@ -302,26 +395,26 @@ const App: React.FC = () => {
             <div className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] p-10 w-full max-w-[380px] shadow-2xl text-center border border-white/30 animate-slide-up relative">
               <button 
                 onClick={resetForm} 
-                className="absolute -top-7 left-1/2 -translate-x-1/2 bg-red-600 text-white w-16 h-16 rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform border-4 border-white/30"
+                className="absolute -top-8 left-1/2 -translate-x-1/2 bg-red-600 text-white w-16 h-16 rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform border-4 border-white/50"
               >
                 <X size={40} strokeWidth={3} />
               </button>
 
-              <div className="mb-6 mt-6 flex justify-center">
-                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-xl">
+              <div className="mb-6 mt-8 flex justify-center">
+                <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-4 border-white shadow-2xl rotate-3">
                   <img src={imagePreview!} className="w-full h-full object-cover" />
                 </div>
               </div>
               
-              <h3 className="text-xl font-bold text-white mb-6">أين تقع هذه المنطقة؟</h3>
+              <h3 className="text-xl font-black text-white mb-6 drop-shadow-md">أين تقع هذه المنطقة؟</h3>
               
               <div className="space-y-4">
-                 <button onClick={useMyPosition} className="w-full p-5 bg-blue-600 text-white rounded-2xl flex items-center justify-center gap-4 font-bold shadow-lg active:scale-95 transition-all">
+                 <button onClick={useMyPosition} className="w-full p-5 bg-green-600 text-white rounded-3xl flex items-center justify-center gap-4 font-black shadow-xl active:scale-95 transition-all border-2 border-white/20">
                     <Navigation size={22} /> موقعي الحالي (GPS)
                  </button>
                  <button 
                     onClick={() => { setShowLocationPicker(false); setMapMode('PICK'); }} 
-                    className="w-full p-5 bg-white/80 text-slate-800 rounded-2xl flex items-center justify-center gap-4 font-bold active:scale-95 transition-all"
+                    className="w-full p-5 bg-white/80 text-slate-800 rounded-3xl flex items-center justify-center gap-4 font-black active:scale-95 transition-all border-2 border-white/30"
                  >
                     <MapIcon size={22} className="text-orange-500" /> اختيار من الخريطة
                  </button>
@@ -333,36 +426,36 @@ const App: React.FC = () => {
         {/* Step 3: Final Confirmation Form (Transparent) */}
         {isFormOpen && !isMinimized && (
           <div className="fixed inset-0 z-[3800] flex items-end sm:items-center justify-center p-4 bg-slate-950/40 backdrop-blur-md">
-            <div className="bg-white/40 backdrop-blur-2xl rounded-t-[3rem] sm:rounded-[3rem] w-full max-w-[460px] shadow-2xl overflow-hidden animate-slide-up border border-white/30">
-              <div className="px-8 py-5 border-b border-white/20 flex justify-between items-center bg-white/10">
+            <div className="bg-white/50 backdrop-blur-3xl rounded-t-[3.5rem] sm:rounded-[3.5rem] w-full max-w-[460px] shadow-2xl overflow-hidden animate-slide-up border-t border-white/40 border-x border-white/20">
+              <div className="px-8 py-6 border-b border-white/20 flex justify-between items-center bg-white/10">
                  <div className="flex items-center gap-3">
-                    <AlertCircle size={20} className="text-orange-400" />
-                    <h3 className="font-bold text-white text-sm">صورة لمنطقة متضررة تستوجب التدخل</h3>
+                    <AlertCircle size={22} className="text-red-400" />
+                    <h3 className="font-black text-white text-sm">صورة لمنطقة متضررة تستوجب التدخل</h3>
                  </div>
-                 <button onClick={resetForm} className="p-2 text-white/50 hover:text-red-500"><X size={24}/></button>
+                 <button onClick={resetForm} className="p-2 text-white/50 hover:text-red-500"><X size={28}/></button>
               </div>
 
-              <div className="p-8 max-h-[70vh] overflow-y-auto no-scrollbar">
-                <div className="relative aspect-video rounded-[2rem] overflow-hidden mb-8 border-4 border-white/50 shadow-2xl bg-slate-800">
-                   {imagePreview && <img src={imagePreview} className="w-full h-full object-cover" />}
-                   <button onClick={() => changeImageInputRef.current?.click()} className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-xl shadow-lg text-[10px] font-bold border border-white/20 flex items-center gap-2"><RefreshCw size={12}/> تغيير الصورة</button>
+              <div className="p-8 max-h-[65vh] overflow-y-auto no-scrollbar">
+                <div className="relative aspect-video rounded-[2.5rem] overflow-hidden mb-8 border-4 border-white shadow-2xl bg-slate-900 group">
+                   {imagePreview && <img src={imagePreview} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />}
+                   <button onClick={() => changeImageInputRef.current?.click()} className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-white px-5 py-2.5 rounded-2xl shadow-lg text-[10px] font-black border border-white/20 flex items-center gap-2 active:scale-95 transition-all"><RefreshCw size={14}/> تغيير الصورة</button>
                 </div>
 
                 <div className="space-y-6 text-right">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-white/60 font-bold uppercase tracking-wider px-1">الموقع الموثق</label>
-                    <div className="bg-black/20 p-4 rounded-2xl border border-white/10 flex items-start gap-3">
-                       <MapPin size={18} className="text-blue-400 mt-1 flex-shrink-0" />
-                       <div className="text-[12px] font-bold text-white break-words w-full text-right leading-relaxed">
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-white/70 font-black uppercase tracking-widest px-1">الموقع الموثق</label>
+                    <div className="bg-black/20 p-5 rounded-3xl border border-white/10 flex items-start gap-4">
+                       <MapPin size={20} className="text-red-400 mt-1 flex-shrink-0" />
+                       <div className="text-[12px] font-black text-white break-words w-full text-right leading-relaxed">
                           {placeName || "جاري استرجاع العنوان..."}
                        </div>
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-white/60 font-bold uppercase tracking-wider px-1">تفاصيل حول الصورة :</label>
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-white/70 font-black uppercase tracking-widest px-1">تفاصيل حول الصورة :</label>
                     <textarea 
                       rows={2} value={dangerLevel} onChange={(e) => setDangerLevel(e.target.value)} 
-                      className="w-full bg-black/20 p-4 rounded-2xl border border-white/10 text-sm font-medium outline-none text-white placeholder:text-white/30 resize-none focus:border-blue-500 transition-all" 
+                      className="w-full bg-black/20 p-5 rounded-3xl border border-white/10 text-sm font-bold text-white placeholder:text-white/20 outline-none resize-none focus:border-green-500/50 transition-all" 
                       placeholder="انزلاق ، انقطاع طريق ، انجراف ؟ حفرة خطيرة (اختياري)" 
                     />
                   </div>
@@ -372,7 +465,7 @@ const App: React.FC = () => {
               <div className="p-8 pt-0">
                  <button 
                     onClick={handleSubmit} disabled={loading}
-                    className="w-full bg-blue-600 text-white py-5 rounded-[1.8rem] font-bold shadow-xl active:scale-95 disabled:bg-slate-700 flex flex-col items-center justify-center gap-1 transition-all text-base border border-blue-400/30"
+                    className="w-full bg-gradient-to-r from-green-600 to-emerald-700 text-white py-6 rounded-[2rem] font-black shadow-2xl active:scale-95 disabled:bg-slate-700 flex flex-col items-center justify-center gap-1 transition-all text-base border-t border-white/20"
                   >
                     <span>رفع الصورة من أجل التدخل العاجل للصيانة</span>
                     <span className="text-[10px] opacity-70 font-normal">إرسال نداء الإغاثة</span>
@@ -387,62 +480,39 @@ const App: React.FC = () => {
           <div className="fixed inset-x-0 bottom-10 z-[4000] flex justify-center items-center pointer-events-none px-6">
             <button 
               onClick={() => setIsMinimized(false)}
-              className="pointer-events-auto bg-white/20 backdrop-blur-xl px-6 py-4 rounded-3xl shadow-2xl border border-white/20 flex items-center gap-4 group animate-in slide-in-from-bottom-5"
+              className="pointer-events-auto bg-white/20 backdrop-blur-2xl px-8 py-5 rounded-[2.5rem] shadow-2xl border border-white/20 flex items-center gap-5 group animate-in slide-in-from-bottom-10"
             >
-              <div className="relative w-14 h-14 flex items-center justify-center">
+              <div className="relative w-16 h-16 flex items-center justify-center">
                 <svg className="absolute inset-0 w-full h-full -rotate-90">
-                  <circle cx="28" cy="28" r="25" fill="none" stroke="currentColor" strokeWidth="4" className="text-white/10" />
-                  <circle cx="28" cy="28" r="25" fill="none" stroke="currentColor" strokeWidth="4" className="text-blue-500 animate-[dash_2s_ease-in-out_infinite]" strokeDasharray="157" strokeDashoffset="100" />
+                  <circle cx="32" cy="32" r="29" fill="none" stroke="currentColor" strokeWidth="4" className="text-white/10" />
+                  <circle cx="32" cy="32" r="29" fill="none" stroke="currentColor" strokeWidth="4" className="text-green-500 animate-[dash_2s_ease-in-out_infinite]" strokeDasharray="182" strokeDashoffset="100" />
                 </svg>
-                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-lg">
+                <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-2xl animate-pulse">
                   <img src={imagePreview!} className="w-full h-full object-cover" />
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-white leading-none">جاري رفع الرصد...</p>
-                <p className="text-[10px] text-blue-200 opacity-80 mt-1">اضغط للتوسيع أو التعديل</p>
+                <p className="text-base font-black text-white leading-none">جاري رفع الرصد...</p>
+                <p className="text-[10px] text-green-200 opacity-80 mt-2 font-bold uppercase tracking-wider">اضغط للتوسيع أو التعديل</p>
               </div>
-              <Loader2 size={16} className="animate-spin text-white/50" />
+              <Loader2 size={18} className="animate-spin text-white/50" />
             </button>
           </div>
         )}
 
         {/* Success Congratulations */}
         {showSuccess && (
-          <div className="fixed inset-0 z-[5000] flex items-center justify-center p-6 bg-blue-700/95 backdrop-blur-xl">
+          <div className="fixed inset-0 z-[5000] flex items-center justify-center p-6 bg-gradient-to-tr from-green-700 to-blue-800 backdrop-blur-2xl">
              <div className="text-center text-white success-bounce">
-                <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-white/40 shadow-2xl">
-                   <PartyPopper size={48} className="text-orange-300" />
+                <div className="w-28 h-28 bg-white/20 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border-4 border-white/40 shadow-2xl rotate-12">
+                   <PartyPopper size={56} className="text-yellow-400 drop-shadow-xl" />
                 </div>
-                <h2 className="text-3xl font-bold mb-3">شكراً جزيلاً!</h2>
-                <p className="text-lg opacity-90 max-w-xs mx-auto mb-8">تم توثيق البلاغ بنجاح. مساهمتك الميدانية هي الخطوة الأولى لإنقاذ الأرواح في المناطق المتضررة.</p>
-                <div className="bg-white text-blue-700 px-8 py-3 rounded-full inline-flex items-center gap-2 font-bold shadow-xl">
-                   <CheckCircle size={20} /> تم الحفظ في قاعدة البيانات
+                <h2 className="text-4xl font-black mb-4 tracking-tight italic">شكراً جزيلاً!</h2>
+                <p className="text-lg opacity-90 max-w-xs mx-auto mb-10 font-bold leading-relaxed">تم توثيق البلاغ بنجاح. مساهمتك الميدانية هي الخطوة الأولى لإنقاذ الأرواح في المناطق المتضررة.</p>
+                <div className="bg-white text-green-700 px-10 py-4 rounded-3xl inline-flex items-center gap-3 font-black shadow-2xl border-b-4 border-green-100">
+                   <CheckCircle size={24} /> تم الحفظ في قاعدة البيانات
                 </div>
              </div>
-          </div>
-        )}
-
-        {/* Region Picker Modal */}
-        {showRegionPicker && (
-          <div className="fixed inset-0 z-[4000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-            <div className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] w-full max-w-[440px] shadow-2xl overflow-hidden border border-white/30 animate-slide-up">
-              <div className="p-8 text-center bg-blue-600/80 text-white relative">
-                <button onClick={() => setShowRegionPicker(false)} className="absolute top-6 left-6 opacity-60 hover:opacity-100 transition-opacity"><X size={24}/></button>
-                <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/30">
-                  <Globe size={32} />
-                </div>
-                <h2 className="text-xl font-bold mb-1">اختر الجهة المستهدفة</h2>
-                <p className="text-sm opacity-80">حدد منطقتك لتسهيل عملية الرصد</p>
-              </div>
-              <div className="p-6 region-grid no-scrollbar">
-                {REGIONS.map(reg => (
-                  <button key={reg.id} onClick={() => selectRegion(reg)} className="p-4 bg-white/80 border border-white/40 rounded-2xl text-right text-slate-800 font-bold text-[11px] shadow-sm active:bg-blue-500/20 transition-all hover:border-blue-400">
-                    {reg.name}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         )}
 
@@ -451,20 +521,23 @@ const App: React.FC = () => {
         <input ref={changeImageInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => handleImageChange(e, true)} />
       </main>
 
-      <footer className="z-[1001] bg-slate-900 border-t border-white/5 p-4 text-center text-[9px] text-slate-500 font-bold uppercase tracking-widest flex items-center flex-col gap-2">
-        <div className="flex items-center gap-3">
-          <span>مواطنون من أجل الإغاثة</span>
-          <span className="w-1 h-1 bg-orange-400 rounded-full"></span>
+      <footer className="z-[1001] bg-slate-900 border-t border-white/5 p-5 text-center text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] flex items-center flex-col gap-2">
+        <div className="flex items-center gap-4">
+          <span className="text-green-500">HAKSORA</span>
+          <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
           <span>الاستجابة الميدانية</span>
         </div>
-        <div className="opacity-60 text-slate-600">Copyright Jilit 2026 © جميع الحقوق محفوظة</div>
+        <div className="opacity-40 text-[9px]">Copyright Jilit 2026 © جميع الحقوق محفوظة</div>
       </footer>
 
       <style>{`
         @keyframes dash {
-          0% { stroke-dashoffset: 157; }
-          50% { stroke-dashoffset: 40; }
-          100% { stroke-dashoffset: 157; }
+          0% { stroke-dashoffset: 182; }
+          50% { stroke-dashoffset: 45; }
+          100% { stroke-dashoffset: 182; }
+        }
+        .fab-shadow {
+          box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.4);
         }
       `}</style>
     </div>
