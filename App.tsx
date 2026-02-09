@@ -89,6 +89,15 @@ const App: React.FC = () => {
   useEffect(() => {
     const saved = localStorage.getItem('haksora_reports_v6');
     if (saved) setReports(JSON.parse(saved));
+    
+    // Smoothly remove preloader if React takes too long to mount
+    const loader = document.getElementById('initial-loader');
+    if (loader) {
+      setTimeout(() => {
+        loader.style.opacity = '0';
+        setTimeout(() => loader.remove(), 400);
+      }, 500);
+    }
   }, []);
 
   const handleSearch = async (query: string) => {
@@ -228,7 +237,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`flex flex-col h-screen w-screen bg-black overflow-hidden relative ${mapMode === 'PICK' ? 'map-pick-mode' : ''}`}>
+    <div className={`flex flex-col h-screen w-screen bg-slate-100 overflow-hidden relative ${mapMode === 'PICK' ? 'map-pick-mode' : ''}`}>
       
       {/* Moroccan Header */}
       <header className="z-[2000] bg-gradient-to-r from-red-600 to-green-600 text-white px-5 py-3 flex items-center justify-between shadow-2xl border-b border-white/20">
@@ -307,14 +316,14 @@ const App: React.FC = () => {
         {/* Locate Me - Top Right */}
         <button 
           onClick={centerOnMeOnly} 
-          className="absolute top-6 right-6 z-[2000] w-12 h-12 bg-white text-green-600 rounded-2xl flex items-center justify-center shadow-2xl active:scale-90 transition-transform border border-slate-200"
+          className="absolute top-6 right-6 z-[1001] w-12 h-12 bg-white text-green-600 rounded-2xl flex items-center justify-center shadow-2xl active:scale-90 transition-transform border border-slate-200"
         >
           <Navigation size={22} className="fill-green-50" />
         </button>
 
         {/* Region Picker Modal */}
         {showRegionPicker && (
-          <div className="fixed inset-0 z-[4000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="fixed inset-0 z-[4000] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
             <div className="bg-slate-50 rounded-[2.5rem] w-full max-w-[500px] shadow-2xl overflow-hidden animate-slide-up flex flex-col max-h-[90vh] border border-slate-200">
               <div className="p-8 text-center bg-white border-b border-slate-200 relative">
                 <button onClick={() => setShowRegionPicker(false)} className="absolute top-6 left-6 w-12 h-12 bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-90">
@@ -367,7 +376,7 @@ const App: React.FC = () => {
 
         {/* Location Selection Flow */}
         {showLocationPicker && (
-          <div className="fixed inset-0 z-[4600] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-md">
+          <div className="fixed inset-0 z-[4600] flex items-center justify-center p-6 bg-slate-900/50 backdrop-blur-md">
             <div className="bg-white rounded-[3rem] p-10 w-full max-w-[400px] shadow-2xl text-center border border-slate-200 animate-slide-up relative">
               <button onClick={resetForm} className="absolute -top-6 right-1/2 translate-x-1/2 bg-red-600 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-xl"><X size={24} /></button>
               <div className="mb-6 mt-4 flex justify-center">
@@ -390,7 +399,7 @@ const App: React.FC = () => {
 
         {/* Final Report Form */}
         {isFormOpen && !isMinimized && (
-          <div className="fixed inset-0 z-[4700] flex items-end sm:items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md">
+          <div className="fixed inset-0 z-[4700] flex items-end sm:items-center justify-center p-4 bg-slate-950/40 backdrop-blur-md">
             <div className="bg-white rounded-t-[3rem] sm:rounded-[3rem] w-full max-w-[460px] shadow-2xl overflow-hidden animate-slide-up">
               <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                  <div className="flex items-center gap-3">
@@ -463,9 +472,9 @@ const App: React.FC = () => {
       </main>
 
       {/* Footer with Real WhatsApp Button */}
-      <footer className="z-[1001] bg-slate-900 border-t border-white/5 p-4 text-center text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] flex flex-col items-center gap-2">
+      <footer className="z-[1001] bg-white border-t border-slate-100 p-4 text-center text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] flex flex-col items-center gap-2 shadow-inner">
         <div className="flex items-center gap-6">
-          <span className="text-green-500">HAKSORA</span>
+          <span className="text-green-600">HAKSORA</span>
           
           <button 
             onClick={openWhatsApp}
@@ -477,9 +486,9 @@ const App: React.FC = () => {
           </button>
 
           <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
-          <span>الاستجابة الميدانية</span>
+          <span className="text-slate-500">الاستجابة الميدانية</span>
         </div>
-        <div className="opacity-20 text-[9px] mt-1 tracking-widest">© 2026 JILIT INFRASTRUCTURE SYSTEM</div>
+        <div className="opacity-40 text-[9px] mt-1 tracking-widest text-slate-400">© 2026 JILIT INFRASTRUCTURE SYSTEM</div>
       </footer>
 
     </div>
