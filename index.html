@@ -4,24 +4,51 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>نظام الرصد الميداني الموحد</title>
+    <title>هـــاك صورة</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-      body { font-family: 'Tajawal', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #f8fafc; color: #1e293b; }
-      .leaflet-container { height: 100%; width: 100%; z-index: 1; background: #cbd5e1 !important; }
+      body { font-family: 'Tajawal', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #000; }
+      .leaflet-container { height: 100%; width: 100%; z-index: 1; background: #000 !important; }
       
       ::-webkit-scrollbar { display: none; }
       
       .custom-popup .leaflet-popup-content-wrapper {
         border-radius: 12px;
         padding: 0;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
       }
-      .custom-popup .leaflet-popup-content { margin: 0 !important; width: 180px !important; }
+      .custom-popup .leaflet-popup-content { margin: 0 !important; width: 200px !important; }
 
-      /* Professional Target Crosshair (CSS Based) */
+      /* Professional Location Dot */
+      .google-style-dot {
+        width: 20px;
+        height: 20px;
+        background: #4285F4;
+        border: 3px solid white;
+        border-radius: 50%;
+        box-shadow: 0 0 10px rgba(66, 133, 244, 0.5);
+        position: relative;
+      }
+      .google-style-dot::after {
+        content: '';
+        position: absolute;
+        top: -4px;
+        left: -4px;
+        right: -4px;
+        bottom: -4px;
+        border-radius: 50%;
+        background: rgba(66, 133, 244, 0.2);
+        animation: ripple 2s infinite;
+      }
+
+      @keyframes ripple {
+        0% { transform: scale(1); opacity: 1; }
+        100% { transform: scale(3); opacity: 0; }
+      }
+
+      /* Expressive Map Crosshair */
       .map-crosshair {
         position: absolute;
         top: 50%;
@@ -32,58 +59,35 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 120px;
-        height: 120px;
       }
-      .target-circle {
-        width: 80px;
-        height: 80px;
-        border: 4px solid #3b82f6;
-        border-radius: 50%;
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+      .crosshair-pin {
+        margin-top: -24px;
+        filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+        animation: bounce-pin 1s infinite alternate;
       }
-      .target-cross-v, .target-cross-h {
-        position: absolute;
-        background-color: #3b82f6;
-      }
-      .target-cross-v { width: 4px; height: 30px; top: -15px; }
-      .target-cross-v.bottom { top: auto; bottom: -15px; }
-      .target-cross-h { width: 30px; height: 4px; left: -15px; }
-      .target-cross-h.right { left: auto; right: -15px; }
-      
-      .target-pin {
-        width: 32px;
-        height: 32px;
-        background-color: #e11d48;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        border: 3px solid white;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        animation: pin-pulse 1s infinite alternate ease-in-out;
-      }
-      @keyframes pin-pulse {
-        from { transform: rotate(-45deg) scale(0.9); }
-        to { transform: rotate(-45deg) scale(1.1); }
+      @keyframes bounce-pin {
+        from { transform: translateY(0); }
+        to { transform: translateY(-8px); }
       }
 
       .glass-modal {
-        background: rgba(255, 255, 255, 0.98);
+        background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
       }
 
-      .side-status-indicator {
+      .confetti {
         position: fixed;
-        left: 20px;
-        top: 50%;
-        transform: translateY(-50%);
-        z-index: 3000;
-        animation: pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        width: 8px;
+        height: 8px;
+        top: -10px;
+        z-index: 9999;
+        border-radius: 50%;
+        animation: fall 3s linear forwards;
       }
-      @keyframes pop-in { from { opacity: 0; transform: translateY(-50%) scale(0.5); } to { opacity: 1; transform: translateY(-50%) scale(1); } }
+      @keyframes fall {
+        to { transform: translateY(100vh) rotate(360deg); }
+      }
     </style>
   <script type="importmap">
 {
@@ -102,7 +106,7 @@
 }
 </script>
 </head>
-  <body class="overflow-hidden bg-slate-100">
+  <body class="bg-black overflow-hidden">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
