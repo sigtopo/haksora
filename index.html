@@ -4,56 +4,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>هـــاك صورة</title>
+    <title>نظام الرصد الميداني الموحد</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-      body { font-family: 'Tajawal', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #000; }
-      .leaflet-container { height: 100%; width: 100%; z-index: 1; background: #000 !important; }
+      body { font-family: 'Tajawal', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #f8fafc; color: #1e293b; }
+      .leaflet-container { height: 100%; width: 100%; z-index: 1; background: #cbd5e1 !important; }
       
       ::-webkit-scrollbar { display: none; }
       
       .custom-popup .leaflet-popup-content-wrapper {
         border-radius: 12px;
         padding: 0;
-        overflow: hidden;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
       }
-      .custom-popup .leaflet-popup-content { margin: 0 !important; width: 200px !important; }
+      .custom-popup .leaflet-popup-content { margin: 0 !important; width: 180px !important; }
 
-      /* Blinking Blue Dot (Google Maps Style) */
-      .blinking-dot-container {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .blinking-dot {
-        width: 14px;
-        height: 14px;
-        background-color: #4285F4;
-        border: 2.5px solid white;
-        border-radius: 50%;
-        box-shadow: 0 0 5px rgba(66, 133, 244, 0.5);
-        position: relative;
-      }
-      .blinking-dot::after {
-        content: '';
-        position: absolute;
-        top: -6px;
-        left: -6px;
-        right: -6px;
-        bottom: -6px;
-        border-radius: 50%;
-        background-color: rgba(66, 133, 244, 0.4);
-        animation: pulse-dot 1.5s infinite ease-out;
-      }
-
-      @keyframes pulse-dot {
-        0% { transform: scale(0.5); opacity: 1; }
-        100% { transform: scale(2.5); opacity: 0; }
-      }
-
-      /* Expressive Map Crosshair */
+      /* Professional Target Crosshair (CSS Based) */
       .map-crosshair {
         position: absolute;
         top: 50%;
@@ -62,38 +30,60 @@
         z-index: 1000;
         pointer-events: none;
         display: flex;
-        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 120px;
+        height: 120px;
+      }
+      .target-circle {
+        width: 80px;
+        height: 80px;
+        border: 4px solid #3b82f6;
+        border-radius: 50%;
+        position: relative;
+        display: flex;
         align-items: center;
         justify-content: center;
       }
-      .crosshair-pin {
-        margin-top: -32px;
-        filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
-        animation: bounce-pin 0.8s infinite alternate ease-in-out;
+      .target-cross-v, .target-cross-h {
+        position: absolute;
+        background-color: #3b82f6;
       }
-      @keyframes bounce-pin {
-        from { transform: translateY(0); }
-        to { transform: translateY(-10px); }
+      .target-cross-v { width: 4px; height: 30px; top: -15px; }
+      .target-cross-v.bottom { top: auto; bottom: -15px; }
+      .target-cross-h { width: 30px; height: 4px; left: -15px; }
+      .target-cross-h.right { left: auto; right: -15px; }
+      
+      .target-pin {
+        width: 32px;
+        height: 32px;
+        background-color: #e11d48;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        border: 3px solid white;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        animation: pin-pulse 1s infinite alternate ease-in-out;
+      }
+      @keyframes pin-pulse {
+        from { transform: rotate(-45deg) scale(0.9); }
+        to { transform: rotate(-45deg) scale(1.1); }
       }
 
       .glass-modal {
-        background: rgba(255, 255, 255, 0.92);
+        background: rgba(255, 255, 255, 0.98);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
       }
 
-      .confetti {
+      .side-status-indicator {
         position: fixed;
-        width: 8px;
-        height: 8px;
-        top: -10px;
-        z-index: 9999;
-        border-radius: 50%;
-        animation: fall 3s linear forwards;
+        left: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 3000;
+        animation: pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
       }
-      @keyframes fall {
-        to { transform: translateY(100vh) rotate(360deg); }
-      }
+      @keyframes pop-in { from { opacity: 0; transform: translateY(-50%) scale(0.5); } to { opacity: 1; transform: translateY(-50%) scale(1); } }
     </style>
   <script type="importmap">
 {
@@ -112,7 +102,7 @@
 }
 </script>
 </head>
-  <body class="bg-black overflow-hidden">
+  <body class="overflow-hidden bg-slate-100">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
