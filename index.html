@@ -17,11 +17,11 @@
       body { 
         font-family: 'Tajawal', sans-serif; 
         -webkit-tap-highlight-color: transparent; 
-        background-color: #0f172a; 
+        background-color: #020617; 
         color: #f8fafc;
         overscroll-behavior-y: contain;
       }
-      .leaflet-container { height: 100%; width: 100%; z-index: 1; background: #020617 !important; }
+      .leaflet-container { height: 100%; width: 100%; z-index: 1; background: #000 !important; }
       
       ::-webkit-scrollbar { display: none; }
       
@@ -64,10 +64,11 @@
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .leaflet-control-attribution { display: none !important; }
 
-      .map-pick-cursor .leaflet-container {
+      /* Custom Mouse Picker Cursor */
+      .map-pick-mode .leaflet-container {
         cursor: crosshair !important;
       }
-
+      
       .whatsapp-real-color {
         background: linear-gradient(to bottom, #25D366, #128C7E);
       }
